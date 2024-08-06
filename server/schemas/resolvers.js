@@ -1,15 +1,17 @@
 const { Question, User } = require("../models");
 const { signToken, AuthenticationError } = require("../utils/auth");
-const { createWriteStream, existsSync, mkdirSync } = require('fs');
-const { GraphQLUpload } = require('graphql-upload');
+const { createWriteStream, existsSync, mkdirSync } = require("fs");
+const { GraphQLUpload } = require("graphql-upload");
 const Jimp = require("jimp");
-const path = require('path');
+const path = require("path");
 
 const resolvers = {
   Query: {
     getQuestion: async () => {
-        const questions = await Question.find({}).populate('userId').sort('-createdAt');
-        return questions;
+      const questions = await Question.find({})
+        .populate("userId")
+        .sort("-createdAt");
+      return questions;
     },
     getUser: async (parent, { username }) => {
       const foundUser = await User.findOne({
@@ -24,30 +26,37 @@ const resolvers = {
     getSingleQuestion: async (parent, { questionId }) => {
       const foundQuestion = await Question.findOne({
         _id: questionId,
-      }).populate('userId').populate('answer.answerUserId');
+      })
+        .populate("userId")
+        .populate("answer.answerUserId");
 
       if (!foundQuestion) {
         return "Cannot find a question with this id!";
       }
       return foundQuestion;
     },
-    getSingleQuestionVote: async (parent, {questionId, userId}) => {
+    getSingleQuestionVote: async (parent, { questionId, userId }) => {
       const foundVote = await Question.findOne({
         _id: questionId,
       });
-      
-      const result = foundVote.votes.filter((vote)=> userId === vote.userId.toString() );
-      return {votes:result}
 
+      const result = foundVote.votes.filter(
+        (vote) => userId === vote.userId.toString()
+      );
+      return { votes: result };
     },
     getSingleAnswerVote: async (parent, { questionId, answerId, userId }) => {
       const foundAnswer = await Question.findOne({
         _id: questionId,
-      })
-      const answerIndex = foundAnswer.answer.findIndex((answer) => answer._id.toString() === answerId);
-      const result = foundAnswer.answer[answerIndex].votes.filter((vote)=> userId === vote.userId.toString() );
-      return {votes:result}
-    }
+      });
+      const answerIndex = foundAnswer.answer.findIndex(
+        (answer) => answer._id.toString() === answerId
+      );
+      const result = foundAnswer.answer[answerIndex].votes.filter(
+        (vote) => userId === vote.userId.toString()
+      );
+      return { votes: result };
+    },
   },
   Mutation: {
     createUser: async (parent, { username, email, password, verified }) => {
@@ -58,7 +67,7 @@ const resolvers = {
     saveQuestionVote: async (parent, { questionId, userId }) => {
       const saveQVote = await Question.findOneAndUpdate(
         { _id: questionId },
-        { $addToSet: { votes: {userId} } },
+        { $addToSet: { votes: { userId } } },
         { new: true }
       );
       return saveQVote;
@@ -66,12 +75,12 @@ const resolvers = {
     saveAnswerVote: async (parent, { questionId, answerId, userId }) => {
       const question = await Question.findById(questionId);
       const answerIndex = question.answer.findIndex((answer) => {
-        return answer._id.toString()  == answerId;
+        return answer._id.toString() == answerId;
       });
-      question.answer[answerIndex].votes.push({userId});
+      question.answer[answerIndex].votes.push({ userId });
       await question.save();
       const questionNew = await Question.findById(questionId);
-      return questionNew;      
+      return questionNew;
     },
     saveQuestion: async (parent, { userId, textContent }) => {
       const saveQ = Question.create({ userId, textContent });
@@ -87,15 +96,21 @@ const resolvers = {
     },
     deleteQuestionVote: async (parent, { questionId, userId }) => {
       const question = await Question.findById(questionId);
-      const votesIndex = question.votes.findIndex((votes) => votes.userId === userId);
+      const votesIndex = question.votes.findIndex(
+        (votes) => votes.userId === userId
+      );
       question.votes.splice(votesIndex, 1);
       await question.save();
       return question;
     },
     deleteAnswerVote: async (parent, { questionId, answerId, userId }) => {
       const question = await Question.findById(questionId);
-      const answerIndex = question.answer.findIndex((answer) => answer._id.toString() === answerId);
-      const votesIndex = question.answer[answerIndex].votes.findIndex((votes) => votes.userId === userId);
+      const answerIndex = question.answer.findIndex(
+        (answer) => answer._id.toString() === answerId
+      );
+      const votesIndex = question.answer[answerIndex].votes.findIndex(
+        (votes) => votes.userId === userId
+      );
       question.answer[answerIndex].votes.splice(votesIndex, 1);
       await question.save();
       return question;
@@ -106,7 +121,9 @@ const resolvers = {
     },
     deleteAnswer: async (parent, { questionId, answerId }) => {
       const question = await Question.findById(questionId);
-      const answerIndex = question.answer.findIndex((answer) => answer._id.toString() === answerId);
+      const answerIndex = question.answer.findIndex(
+        (answer) => answer._id.toString() === answerId
+      );
       question.answer.splice(answerIndex, 1);
       await question.save();
       return question;
@@ -136,31 +153,36 @@ const resolvers = {
       );
 
       return saveAvatarImg;
-    },  
-    saveUserInfo: async (parent, {userId, username, email, bio, avatarImg}) => {
+    },
+    saveUserInfo: async (
+      parent,
+      { userId, username, email, bio, avatarImg }
+    ) => {
       const saveUser = User.findOneAndUpdate(
         { _id: userId },
         { username, email, bio, avatarImg },
         { new: true }
-      )
+      );
       return saveUser;
-    }, 
-    uploadFile: async (parent, {file, userId}) => {
-      const { file: { filename, mimetype, encoding, createReadStream }, } = file;
-      const fileExt = filename.substr(filename.length - 3); 
+    },
+    uploadFile: async (parent, { file, userId }) => {
+      const {
+        file: { filename, mimetype, encoding, createReadStream },
+      } = file;
+      const fileExt = filename.substr(filename.length - 3);
       const stream = createReadStream();
-      let filePath ;
+      let filePath;
       if (process.env.NODE_ENV === "production") {
-        filePath  = `/user_images/${userId}.${fileExt}`;
+        filePath = `/user_images/${userId}.${fileExt}`;
       } else {
-        filePath  = `../client/public/user_images/${userId}.${fileExt}`;
+        filePath = `../client/public/user_images/${userId}.${fileExt}`;
       }
-      
+
       await new Promise((resolve, reject) =>
         stream
           .pipe(createWriteStream(filePath))
-          .on('finish', resolve)
-          .on('error', reject)
+          .on("finish", resolve)
+          .on("error", reject)
       );
       await Jimp.read(filePath, (err, img) => {
         if (err) throw err;
@@ -168,10 +190,9 @@ const resolvers = {
           .resize(256, 256) // resize
           .write(path); // save
       });
-      return { filename, mimetype, this:"test" };
+      return { filename, mimetype, this: "tripper" };
     },
   },
-  
 };
 
 module.exports = resolvers;
