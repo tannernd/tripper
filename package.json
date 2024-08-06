@@ -1,0 +1,25 @@
+{
+  "name": "tripper",
+  "version": "1.0.0",
+  "description": "A place for trippers to chat!",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/server.js --ignore client",
+    "dev": "concurrently \"cd server && npm run watch\" \"cd client && npm run dev\"",
+    "install": "cd server && npm i && cd ../client && npm i",
+    "seed": "cd server && npm run seed",
+    "build": "cd client && npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^5.3.0"
+  },
+  "dependencies": {
+    "@stripe/stripe-js": "^2.2.0",
+    "apollo-upload-client": "^18.0.1",
+    "react-icons": "^4.12.0"
+  }
+}
