@@ -12,7 +12,7 @@ const app = express();
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  uploads: false
+  uploads: false,
 });
 
 const startApolloServer = async () => {
@@ -22,11 +22,10 @@ const startApolloServer = async () => {
   app.use(express.json());
 
   // Regular GraphQL requests
-  //app.use("/graphql", expressMiddleware(server));
+  app.use("/graphql", expressMiddleware(server));
 
   // File uploads
   app.use(graphqlUploadExpress({ maxFiles: 1 }));
-
 
   if (process.env.NODE_ENV === "production") {
     app.use(express.static(path.join(__dirname, "../client/dist")));
@@ -35,7 +34,7 @@ const startApolloServer = async () => {
       res.sendFile(path.join(__dirname, "../client/dist/index.html"));
     });
   } else {
-    app.use(express.static('client/public'));
+    app.use(express.static("client/public"));
   }
   server.applyMiddleware({ app });
   db.once("open", () => {
