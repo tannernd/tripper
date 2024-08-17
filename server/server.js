@@ -21,8 +21,8 @@ const startApolloServer = async () => {
   app.use(express.urlencoded({ extended: true }));
   app.use(express.json());
 
-  // Regular GraphQL requests
-  app.use("/graphql", expressMiddleware(server));
+  // Change the endpoint from /graphql to /api/v1/graphql
+  server.applyMiddleware({ app, path: "/api/tripper/graphql" });
 
   // File uploads
   app.use(graphqlUploadExpress({ maxFiles: 1 }));
@@ -36,11 +36,13 @@ const startApolloServer = async () => {
   } else {
     app.use(express.static("client/public"));
   }
-  server.applyMiddleware({ app });
+  //server.applyMiddleware({ app });
   db.once("open", () => {
     app.listen(PORT, () => {
       console.log(`API server running on port ${PORT}!`);
-      console.log(`Use GraphQL at http://localhost:${PORT}/graphql`);
+      console.log(
+        `Use GraphQL at http://localhost:${PORT}${server.graphqlPath}`
+      );
     });
   });
 };
